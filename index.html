@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workshop 3 — Introduction to PyTorch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,600;1,400&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c23;
+    --border: #252b36;
+    --accent: #e8673a;
+    --accent2: #5b9cf6;
+    --accent3: #52c97e;
+    --text: #d4d8e2;
+    --muted: #6b7280;
+    --heading: #f0f2f7;
+    --code-bg: #0d1117;
+    --code-border: #1e2530;
+    --tag-bg: #1a2235;
+    --tag-text: #5b9cf6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.75;
+    font-size: 15px;
+    overflow-x: hidden;
+  }
+
+  /* GRID NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(91,156,246,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(91,156,246,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(10,12,16,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 56px;
+  }
+
+  .nav-logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0;
+    list-style: none;
+  }
+
+  .nav-links a {
+    display: block;
+    padding: 6px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.06em;
+    transition: color 0.2s;
+    border-left: 1px solid var(--border);
+  }
+
+  .nav-links a:hover { color: var(--accent2); }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 120px 4rem 80px;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .hero-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.2s forwards;
+  }
+
+  .hero h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(3rem, 7vw, 6rem);
+    color: var(--heading);
+    line-height: 1.05;
+    max-width: 900px;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.35s forwards;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-desc {
+    max-width: 560px;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1.8;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.5s forwards;
+  }
+
+  .hero-tags {
+    display: flex;
+    gap: 8px;
+    margin-top: 2.5rem;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.65s forwards;
+  }
+
+  .tag {
+    padding: 4px 12px;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--tag-text);
+    letter-spacing: 0.04em;
+  }
+
+  .hero-orbit {
+    position: absolute;
+    right: -100px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 600px;
+    height: 600px;
+    opacity: 0.08;
+    animation: spin 40s linear infinite;
+  }
+
+  /* MAIN LAYOUT */
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem 8rem;
+  }
+
+  /* SECTION */
+  section {
+    margin-bottom: 6rem;
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+
+  section.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    min-width: 40px;
+  }
+
+  section h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 2rem;
+    color: var(--heading);
+    font-weight: 400;
+  }
+
+  section h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--accent2);
+    letter-spacing: 0.08em;
+    margin: 2rem 0 0.75rem;
+    text-transform: uppercase;
+  }
+
+  p {
+    color: var(--text);
+    margin-bottom: 1rem;
+    max-width: 72ch;
+  }
+
+  /* CONCEPT CARDS */
+  .concept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 1.5rem 0;
+  }
+
+  .concept-card {
+    background: var(--surface);
+    padding: 1.5rem;
+    transition: background 0.2s;
+  }
+
+  .concept-card:hover { background: var(--surface2); }
+
+  .concept-card .card-icon {
+    font-size: 1.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .concept-card h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .concept-card p {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 0;
+    max-width: none;
+    line-height: 1.65;
+  }
+
+  /* CODE BLOCKS */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-left: 3px solid var(--accent2);
+    margin: 1.25rem 0;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 1rem;
+    border-bottom: 1px solid var(--code-border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .code-lang {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .copy-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .copy-btn:hover { color: var(--accent2); border-color: var(--accent2); }
+
+  pre {
+    padding: 1.25rem 1.5rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #c9d1d9;
+    white-space: pre;
+  }
+
+  /* Syntax highlighting */
+  .kw { color: #ff7b72; }
+  .fn { color: #d2a8ff; }
+  .st { color: #a5d6ff; }
+  .cm { color: #8b949e; font-style: italic; }
+  .nu { color: #79c0ff; }
+  .cl { color: #ffa657; }
+  .op { color: #ff7b72; }
+  .bi { color: #79c0ff; }
+
+  /* VISUAL DIAGRAMS */
+  .diagram-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+
+  /* TENSOR VIZ */
+  .tensor-viz {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin: 1.5rem 0;
+  }
+
+  .tensor-container {
+    text-align: center;
+  }
+
+  .tensor-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .tensor-grid {
+    display: inline-grid;
+    gap: 2px;
+    background: var(--border);
+    padding: 2px;
+  }
+
+  .tensor-cell {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    transition: background 0.3s;
+  }
+
+  /* NETWORK DIAGRAM */
+  .network-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 2rem 1rem;
+    overflow-x: auto;
+  }
+
+  .layer-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 120px;
+  }
+
+  .layer-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .layer-box {
+    width: 100px;
+    padding: 10px 6px;
+    border: 1px solid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    min-height: 70px;
+    text-align: center;
+  }
+
+  .layer-box .layer-type {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .layer-box .layer-dim {
+    color: var(--muted);
+    font-size: 10px;
+  }
+
+  .arrow {
+    width: 40px;
+    height: 2px;
+    position: relative;
+    flex-shrink: 0;
+    margin-top: -20px;
+  }
+
+  .arrow::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--muted);
+  }
+
+  .arrow::after {
+    content: '▶';
+    position: absolute;
+    right: -8px;
+    top: -7px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* TRAINING VIZ */
+  .training-flow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    margin: 1.5rem 0;
+  }
+
+  .flow-step {
+    background: var(--surface);
+    padding: 1.25rem 1.5rem;
+    border-left: 3px solid transparent;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .flow-step:hover {
+    background: var(--surface2);
+    border-color: var(--accent);
+  }
+
+  .flow-step .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.4rem;
+  }
+
+  .flow-step h5 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--heading);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+  }
+
+  .flow-step p {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0;
+    max-width: none;
+    line-height: 1.55;
+  }
+
+  /* INTERACTIVE TENSOR EXPLORER */
+  .interactive-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    margin: 1.5rem 0;
+  }
+
+  .interactive-section h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .interactive-section h4::before {
+    content: '◈';
+    font-size: 14px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    align-items: center;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .control-group label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  select, input[type="range"], button.action-btn {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 6px 10px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  select:hover, input[type="range"]:hover { border-color: var(--accent2); }
+
+  button.action-btn {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 11px;
+    padding: 8px 16px;
+  }
+
+  button.action-btn:hover { opacity: 0.85; }
+
+  button.secondary-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 8px 16px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  button.secondary-btn:hover { color: var(--accent2); border-color: var(--accent2); }
+
+  /* TASK BOXES */
+  .task-box {
+    border: 1px solid var(--accent);
+    background: rgba(232,103,58,0.04);
+    padding: 1.5rem 2rem;
+    margin: 1.5rem 0;
+    position: relative;
+  }
+
+  .task-box::before {
+    content: 'TASK';
+    position: absolute;
+    top: -1px;
+    left: 1.5rem;
+    transform: translateY(-50%);
+    background: var(--accent);
+    color: white;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    padding: 2px 10px;
+  }
+
+  .task-box h4 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.2rem;
+    color: var(--heading);
+    margin-bottom: 0.75rem;
+    font-weight: 400;
+  }
+
+  .task-box ol {
+    padding-left: 1.25rem;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .task-box li { margin-bottom: 0.25rem; }
+
+  /* INFO CALLOUT */
+  .callout {
+    border-left: 3px solid var(--accent2);
+    background: rgba(91,156,246,0.06);
+    padding: 1rem 1.5rem;
+    margin: 1.25rem 0;
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+
+  .callout strong {
+    color: var(--accent2);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+
+  /* HISTOGRAM */
+  #histogram-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 140px;
+    margin: 1rem 0 0.5rem;
+    padding: 0 2px;
+    position: relative;
+  }
+
+  #histogram-bars::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .hist-bar {
+    flex: 1;
+    background: var(--accent2);
+    opacity: 0.7;
+    min-height: 2px;
+    transition: height 0.4s cubic-bezier(.4,0,.2,1), opacity 0.2s;
+    position: relative;
+    cursor: default;
+  }
+
+  .hist-bar:hover { opacity: 1; }
+
+  .hist-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    padding: 0 2px;
+  }
+
+  /* EMBEDDING TABLE */
+  .embedding-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin: 1rem 0;
+  }
+
+  .stat-cell {
+    background: var(--surface);
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.4rem;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+
+  .stat-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes spin {
+    from { transform: translateY(-50%) rotate(0deg); }
+    to { transform: translateY(-50%) rotate(360deg); }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  @media (max-width: 700px) {
+    .hero { padding: 100px 1.5rem 60px; }
+    .wrapper { padding: 0 1.5rem 6rem; }
+    nav { padding: 0 1rem; }
+    .nav-links { display: none; }
+    .training-flow { grid-template-columns: 1fr; }
+    .network-diagram { flex-wrap: wrap; }
+    .arrow { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Workshop 3 / PyTorch</div>
+  <ul class="nav-links">
+    <a href="#tensors">Tensors</a>
+    <a href="#datasets">Datasets</a>
+    <a href="#network">Network</a>
+    <a href="#training">Training</a>
+    <a href="#tasks">Tasks</a>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <svg class="hero-orbit" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="200" cy="200" r="160" stroke="#5b9cf6" stroke-width="0.5"/>
+    <circle cx="200" cy="200" r="100" stroke="#e8673a" stroke-width="0.5"/>
+    <circle cx="200" cy="200" r="50" stroke="#52c97e" stroke-width="0.5"/>
+    <line x1="200" y1="40" x2="200" y2="360" stroke="#5b9cf6" stroke-width="0.3"/>
+    <line x1="40" y1="200" x2="360" y2="200" stroke="#5b9cf6" stroke-width="0.3"/>
+    <line x1="87" y1="87" x2="313" y2="313" stroke="#e8673a" stroke-width="0.3"/>
+    <line x1="313" y1="87" x2="87" y2="313" stroke="#e8673a" stroke-width="0.3"/>
+    <circle cx="200" cy="40" r="4" fill="#5b9cf6"/>
+    <circle cx="360" cy="200" r="4" fill="#e8673a"/>
+    <circle cx="200" cy="360" r="3" fill="#52c97e"/>
+    <circle cx="87" cy="87" r="3" fill="#5b9cf6"/>
+  </svg>
+  <div class="hero-label">Workshop 3 · Neural Networks</div>
+  <h1>Introduction to <em>PyTorch</em></h1>
+  <p class="hero-desc">Tensors, datasets, automatic differentiation, and training neural networks for text classification — from first principles.</p>
+  <div class="hero-tags">
+    <span class="tag">torch</span>
+    <span class="tag">nn.Module</span>
+    <span class="tag">autograd</span>
+    <span class="tag">EmbeddingBag</span>
+    <span class="tag">SGD</span>
+    <span class="tag">text-classification</span>
+  </div>
+</div>
+
+<div class="wrapper">
+
+  <!-- ── TENSORS ── -->
+  <section id="tensors">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Tensors</h2>
+    </div>
+
+    <p>A <strong>tensor</strong> is PyTorch's fundamental data container. Think of it as a typed, n-dimensional array that knows which device it lives on (CPU or GPU) and keeps a record of every operation performed on it — so gradients can flow backwards.</p>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="card-icon">📐</div>
+        <h4>Shape</h4>
+        <p>The dimensions of the tensor. A 2×3 tensor has shape <code>(2, 3)</code>. Shape determines how operations compose — matrix multiply, broadcasting, attention — it's all shape arithmetic.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">🔢</div>
+        <h4>dtype</h4>
+        <p>The numeric type of every element: <code>float32</code> for model weights, <code>int64</code> for token IDs. Mismatched dtypes are the most common runtime error.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">⚡</div>
+        <h4>device</h4>
+        <p>Where the data lives: <code>cpu</code> or <code>cuda</code>. Operations between tensors on different devices fail — you must explicitly move tensors with <code>.to(device)</code>.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">🔗</div>
+        <h4>requires_grad</h4>
+        <p>When <code>True</code>, PyTorch records every operation on this tensor in a computation graph so it can compute derivatives automatically during backpropagation.</p>
+      </div>
+    </div>
+
+    <h3>Creating Tensors</h3>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="cm"># From data — dtype inferred automatically</span>
+data = [[<span class="nu">1</span>, <span class="nu">2</span>], [<span class="nu">3</span>, <span class="nu">4</span>]]
+x_data = torch.<span class="fn">tensor</span>(data)           <span class="cm"># int64</span>
+
+float_data = [[<span class="nu">1.0</span>, <span class="nu">2.0</span>], [<span class="nu">3.0</span>, <span class="nu">4.0</span>]]
+xf_data = torch.<span class="fn">tensor</span>(float_data)    <span class="cm"># float32</span>
+
+<span class="cm"># From NumPy — SHARED memory, not a copy</span>
+np_array = np.<span class="fn">array</span>(data)
+x_np = torch.<span class="fn">from_numpy</span>(np_array)
+
+<span class="cm"># Same shape as existing tensor, new values</span>
+x_ones = torch.<span class="fn">ones_like</span>(x_data)
+x_rand = torch.<span class="fn">rand_like</span>(x_data, dtype=torch.float)
+
+<span class="cm"># From scratch with explicit shape</span>
+shape = (<span class="nu">2</span>, <span class="nu">3</span>)
+rand_tensor  = torch.<span class="fn">rand</span>(shape)
+ones_tensor  = torch.<span class="fn">ones</span>(shape)
+zeros_tensor = torch.<span class="fn">zeros</span>(shape)</pre>
+    </div>
+
+    <div class="callout">
+      <strong>Why shared memory matters</strong>
+      <code>torch.from_numpy()</code> and NumPy's <code>t.numpy()</code> do <em>not</em> copy data — they share the same underlying memory buffer. This is fast, but means modifying one modifies the other. Slicing also gives you a <em>view</em>, not a copy. Use <code>.clone()</code> when you need independence.
+    </div>
+
+    <h3>Key Operations</h3>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre>tensor = torch.<span class="fn">rand</span>(<span class="nu">4</span>, <span class="nu">4</span>)
+
+<span class="cm"># Indexing & slicing (returns views)</span>
+tensor[<span class="nu">0</span>]          <span class="cm"># first row</span>
+tensor[:, <span class="nu">0</span>]       <span class="cm"># first column</span>
+tensor[..., -<span class="nu">1</span>]    <span class="cm"># last column</span>
+
+<span class="cm"># cat vs stack — both join, but stack creates a new axis</span>
+torch.<span class="fn">cat</span>([t1, t2], dim=<span class="nu">0</span>)    <span class="cm"># (2,3)+(2,3) → (4,3)</span>
+torch.<span class="fn">stack</span>([t1, t2], dim=<span class="nu">0</span>)  <span class="cm"># (2,3)+(2,3) → (2,2,3)</span>
+
+<span class="cm"># Matrix multiply vs element-wise</span>
+y = tensor @ tensor.T          <span class="cm"># matmul: (4,4)@(4,4) → (4,4)</span>
+z = tensor * tensor            <span class="cm"># element-wise: same shape</span>
+
+<span class="cm"># Aggregation → scalar tensor → Python float</span>
+agg = tensor.<span class="fn">sum</span>()
+val = agg.<span class="fn">item</span>()              <span class="cm"># extracts the Python float</span></pre>
+    </div>
+
+    <h3>Interactive: Visualise Tensor Operations</h3>
+    <div class="interactive-section">
+      <h4>Tensor Explorer</h4>
+      <div class="controls">
+        <div class="control-group">
+          <label>Operation</label>
+          <select id="op-select">
+            <option value="rand">rand (random)</option>
+            <option value="ones">ones</option>
+            <option value="zeros">zeros</option>
+            <option value="eye">eye (identity)</option>
+            <option value="mul">element-wise multiply</option>
+            <option value="matmul">matrix multiply</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Size n×n</label>
+          <select id="size-select">
+            <option value="3">3×3</option>
+            <option value="4" selected>4×4</option>
+            <option value="5">5×5</option>
+          </select>
+        </div>
+        <div class="control-group" style="justify-content: flex-end; margin-top: 20px;">
+          <button class="action-btn" onclick="runTensorOp()">Run</button>
+        </div>
+      </div>
+      <div id="tensor-output" style="display:flex; gap:2rem; flex-wrap:wrap; align-items:flex-start;"></div>
+      <div id="tensor-code" style="margin-top:1rem;"></div>
+    </div>
+  </section>
+
+  <!-- ── DATASETS ── -->
+  <section id="datasets">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Datasets &amp; DataLoaders</h2>
+    </div>
+
+    <p>PyTorch separates <em>what data is</em> from <em>how to load it</em>. A <code>Dataset</code> describes one sample at a time. A <code>DataLoader</code> wraps it and handles batching, shuffling, and parallel loading — concerns that don't belong in your model code.</p>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="card-icon">🗂</div>
+        <h4>Dataset</h4>
+        <p>Implements <code>__len__</code> and <code>__getitem__</code>. That protocol is all PyTorch needs — it doesn't care what's inside. This lets you swap datasets without touching training code.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">📦</div>
+        <h4>DataLoader</h4>
+        <p>Handles minibatching, shuffling each epoch (reducing overfitting by preventing the model from memorising order), and optional parallel workers via <code>num_workers</code>.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">🔄</div>
+        <h4>collate_fn</h4>
+        <p>Called once per batch. Converts a list of individual samples into tensors. Essential for variable-length sequences — like text — where you need to pack or pad before feeding the model.</p>
+      </div>
+    </div>
+
+    <h3>Custom Dataset Pattern</h3>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">class</span> <span class="cl">CustomTextDataset</span>(Dataset):
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="bi">self</span>, json_file, transform=<span class="bi">None</span>, target_transform=<span class="bi">None</span>):
+        <span class="bi">self</span>.labels, <span class="bi">self</span>.inputs = [], []
+        <span class="kw">for</span> line <span class="kw">in</span> <span class="fn">open</span>(json_file):
+            data = json.<span class="fn">loads</span>(line.<span class="fn">strip</span>())
+            <span class="kw">for</span> msg, tlabel <span class="kw">in</span> <span class="fn">zip</span>(data[<span class="st">'messages'</span>], data[<span class="st">'sender_labels'</span>]):
+                <span class="bi">self</span>.inputs.<span class="fn">append</span>(msg)
+                <span class="cm"># Convert bool → int label (True sender → 0, False → 1)</span>
+                <span class="bi">self</span>.labels.<span class="fn">append</span>(<span class="nu">0</span> <span class="kw">if</span> tlabel <span class="kw">else</span> <span class="nu">1</span>)
+        <span class="bi">self</span>.transform = transform
+        <span class="bi">self</span>.target_transform = target_transform
+
+    <span class="kw">def</span> <span class="fn">__len__</span>(<span class="bi">self</span>):
+        <span class="kw">return</span> <span class="fn">len</span>(<span class="bi">self</span>.labels)
+
+    <span class="kw">def</span> <span class="fn">__getitem__</span>(<span class="bi">self</span>, idx):
+        text, label = <span class="bi">self</span>.inputs[idx], <span class="bi">self</span>.labels[idx]
+        <span class="kw">if</span> <span class="bi">self</span>.transform:        text  = <span class="bi">self</span>.<span class="fn">transform</span>(text)
+        <span class="kw">if</span> <span class="bi">self</span>.target_transform: label = <span class="bi">self</span>.<span class="fn">target_transform</span>(label)
+        <span class="kw">return</span> text, label</pre>
+    </div>
+
+    <h3>Text → Tensors: The Vocabulary</h3>
+    <p>Neural networks can't process strings. The vocabulary maps each unique token to an integer ID. The <code>collate_fn</code> then converts a batch of text strings into flat token-ID tensors plus an <code>offsets</code> array that marks where each sequence starts.</p>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">class</span> <span class="cl">Vocab</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="bi">self</span>, token_iter):
+        <span class="bi">self</span>.str_to_num = {<span class="st">"&lt;unk&gt;"</span>: <span class="nu">0</span>}  <span class="cm"># unknown token always at index 0</span>
+        <span class="kw">for</span> token <span class="kw">in</span> token_iter:
+            <span class="kw">if</span> token <span class="kw">not in</span> <span class="bi">self</span>.str_to_num:
+                <span class="bi">self</span>.str_to_num[token] = <span class="fn">len</span>(<span class="bi">self</span>.str_to_num)
+
+<span class="kw">def</span> <span class="fn">collate_batch</span>(batch):
+    label_list, text_list, offsets = [], [], [<span class="nu">0</span>]
+    <span class="kw">for</span> _text, _label <span class="kw">in</span> batch:
+        label_list.<span class="fn">append</span>(<span class="fn">int</span>(_label))
+        tokens = torch.<span class="fn">tensor</span>(<span class="fn">text_pipeline</span>(_text), dtype=torch.int64)
+        text_list.<span class="fn">append</span>(tokens)
+        offsets.<span class="fn">append</span>(tokens.<span class="fn">size</span>(<span class="nu">0</span>))  <span class="cm"># length of this sequence</span>
+    <span class="cm"># cumsum converts lengths [0,5,3,7] → start indices [0,5,8,15]</span>
+    offsets = torch.<span class="fn">tensor</span>(offsets[:-<span class="nu">1</span>]).<span class="fn">cumsum</span>(dim=<span class="nu">0</span>)
+    <span class="kw">return</span> torch.<span class="fn">cat</span>(text_list), torch.<span class="fn">tensor</span>(label_list), offsets</pre>
+    </div>
+
+    <div class="callout">
+      <strong>Why flatten + offsets instead of padding?</strong>
+      Padding packs all sequences to the same length with dummy tokens, which wastes compute. <code>nn.EmbeddingBag</code> uses the offsets trick instead — it concatenates all sequences into one flat tensor and uses the offsets array to know where each begins. No wasted computation, no padding embeddings polluting your mean.
+    </div>
+  </section>
+
+  <!-- ── NETWORK ── -->
+  <section id="network">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Building the Neural Network</h2>
+    </div>
+
+    <p>Every PyTorch model is a subclass of <code>nn.Module</code>. You define the layers in <code>__init__</code> and the forward pass — how data flows through those layers — in <code>forward()</code>. PyTorch's autograd then automatically handles the backward pass.</p>
+
+    <h3>Architecture</h3>
+
+    <div class="diagram-box">
+      <div class="network-diagram">
+        <div class="layer-block">
+          <div class="layer-name">Input</div>
+          <div class="layer-box" style="border-color: var(--muted); color: var(--muted);">
+            <span class="layer-type">Token IDs</span>
+            <span class="layer-dim">[flat int64]</span>
+            <span class="layer-dim">+ offsets</span>
+          </div>
+        </div>
+        <div class="arrow"></div>
+        <div class="layer-block">
+          <div class="layer-name">Layer 1</div>
+          <div class="layer-box" style="border-color: var(--accent2); color: var(--accent2);">
+            <span class="layer-type">EmbeddingBag</span>
+            <span class="layer-dim">vocab → 64</span>
+            <span class="layer-dim">mode=mean</span>
+          </div>
+        </div>
+        <div class="arrow"></div>
+        <div class="layer-block">
+          <div class="layer-name">Layer 2</div>
+          <div class="layer-box" style="border-color: var(--accent); color: var(--accent);">
+            <span class="layer-type">Linear</span>
+            <span class="layer-dim">64 → num_class</span>
+            <span class="layer-dim">Wx + b</span>
+          </div>
+        </div>
+        <div class="arrow"></div>
+        <div class="layer-block">
+          <div class="layer-name">Output</div>
+          <div class="layer-box" style="border-color: var(--accent3); color: var(--accent3);">
+            <span class="layer-type">Logits</span>
+            <span class="layer-dim">[batch, 2]</span>
+            <span class="layer-dim">raw scores</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">class</span> <span class="cl">TextClassificationModel</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="bi">self</span>, vocab_size, embed_dim, num_class):
+        <span class="fn">super</span>().<span class="fn">__init__</span>()
+        <span class="bi">self</span>.embedding = nn.<span class="fn">EmbeddingBag</span>(vocab_size, embed_dim, sparse=<span class="bi">False</span>)
+        <span class="bi">self</span>.fc = nn.<span class="fn">Linear</span>(embed_dim, num_class)
+        <span class="bi">self</span>.<span class="fn">init_weights</span>()
+
+    <span class="kw">def</span> <span class="fn">init_weights</span>(<span class="bi">self</span>):
+        initrange = <span class="nu">0.5</span>
+        <span class="bi">self</span>.embedding.weight.data.<span class="fn">uniform_</span>(-initrange, initrange)
+        <span class="bi">self</span>.fc.weight.data.<span class="fn">uniform_</span>(-initrange, initrange)
+        <span class="bi">self</span>.fc.bias.data.<span class="fn">zero_</span>()
+
+    <span class="kw">def</span> <span class="fn">forward</span>(<span class="bi">self</span>, text, offsets):
+        embedded = <span class="bi">self</span>.<span class="fn">embedding</span>(text, offsets)  <span class="cm"># → [batch, embed_dim]</span>
+        <span class="kw">return</span> <span class="bi">self</span>.<span class="fn">fc</span>(embedded)                  <span class="cm"># → [batch, num_class]</span></pre>
+    </div>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="card-icon">🧩</div>
+        <h4>EmbeddingBag</h4>
+        <p>Maps each token ID to a learned vector (embedding), then averages all vectors in the sequence. The average becomes the document representation. No word order — a bag-of-words assumption, but learned.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">➗</div>
+        <h4>Linear (fc)</h4>
+        <p>A weight matrix <em>W</em> and bias <em>b</em>. Computes <em>xW<sup>T</sup> + b</em>. The learned weights in <em>W</em> determine which embedding dimensions matter for each class.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">📊</div>
+        <h4>Logits</h4>
+        <p>Raw, unnormalised scores. Not probabilities yet. CrossEntropyLoss converts them internally via softmax. You only apply softmax explicitly at inference time when you need probabilities.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">🏁</div>
+        <h4>init_weights</h4>
+        <p>Uniform initialisation in [−0.5, 0.5] breaks symmetry. If all weights started at zero, every neuron would compute identical gradients and learn identically — the network would never specialise.</p>
+      </div>
+    </div>
+
+    <h3>Task 1 — Add a Hidden Layer</h3>
+    <div class="task-box">
+      <h4>Task 1: Hidden Layer with Tanh Activation</h4>
+      <ol>
+        <li>Use an EmbeddingBag to represent words</li>
+        <li>Use a Linear layer to project to 100 hidden dimensions</li>
+        <li>Apply <code>torch.tanh</code> as the activation function</li>
+        <li>Use a second Linear layer to get scores across labels</li>
+      </ol>
+    </div>
+
+    <div class="callout">
+      <strong>Why an activation function?</strong>
+      Without tanh (or any non-linearity), stacking two linear layers is mathematically identical to one linear layer — the composition of linear functions is linear. The activation function introduces non-linearity, letting the hidden layer learn complex feature interactions that a single matrix can't represent.
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python — Task 1 solution</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">class</span> <span class="cl">TextClassificationModelWithHidden</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="bi">self</span>, vocab_size, embed_dim, hidden_dim, num_class):
+        <span class="fn">super</span>().<span class="fn">__init__</span>()
+        <span class="bi">self</span>.embedding = nn.<span class="fn">EmbeddingBag</span>(vocab_size, embed_dim, sparse=<span class="bi">False</span>)
+        <span class="bi">self</span>.fc1 = nn.<span class="fn">Linear</span>(embed_dim, hidden_dim)   <span class="cm"># 64 → 100</span>
+        <span class="bi">self</span>.fc2 = nn.<span class="fn">Linear</span>(hidden_dim, num_class)   <span class="cm"># 100 → 2</span>
+        <span class="bi">self</span>.<span class="fn">init_weights</span>()
+
+    <span class="kw">def</span> <span class="fn">init_weights</span>(<span class="bi">self</span>):
+        initrange = <span class="nu">0.5</span>
+        <span class="kw">for</span> layer <span class="kw">in</span> [<span class="bi">self</span>.embedding, <span class="bi">self</span>.fc1, <span class="bi">self</span>.fc2]:
+            layer.weight.data.<span class="fn">uniform_</span>(-initrange, initrange)
+        <span class="bi">self</span>.fc1.bias.data.<span class="fn">zero_</span>()
+        <span class="bi">self</span>.fc2.bias.data.<span class="fn">zero_</span>()
+
+    <span class="kw">def</span> <span class="fn">forward</span>(<span class="bi">self</span>, text, offsets):
+        embedded = <span class="bi">self</span>.<span class="fn">embedding</span>(text, offsets)  <span class="cm"># [batch, 64]</span>
+        hidden   = torch.<span class="fn">tanh</span>(<span class="bi">self</span>.<span class="fn">fc1</span>(embedded)) <span class="cm"># [batch, 100]</span>
+        <span class="kw">return</span> <span class="bi">self</span>.<span class="fn">fc2</span>(hidden)                    <span class="cm"># [batch, 2]</span>
+
+model_hidden = <span class="fn">TextClassificationModelWithHidden</span>(
+    vocab_size, emsize, hidden_dim=<span class="nu">100</span>, num_class=num_class
+).<span class="fn">to</span>(device)</pre>
+    </div>
+  </section>
+
+  <!-- ── AUTOGRAD ── -->
+  <section id="autograd">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>Autograd &amp; Backpropagation</h2>
+    </div>
+
+    <p>When you set <code>requires_grad=True</code> on a tensor, PyTorch silently builds a directed acyclic graph (DAG) as operations run. Each node stores how to compute its derivative. When you call <code>.backward()</code>, the engine walks this graph in reverse, applying the chain rule at each step to accumulate gradients in each parameter's <code>.grad</code> attribute.</p>
+
+    <div class="diagram-box">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); margin-bottom:1rem; letter-spacing:0.06em; text-transform:uppercase;">Computation Graph</div>
+      <svg viewBox="0 0 700 220" width="100%" style="max-width:700px; display:block; margin:0 auto;">
+        <!-- Forward pass arrows -->
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#5b9cf6" opacity="0.6"/>
+          </marker>
+          <marker id="arr-back" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+            <polygon points="8 0, 0 3, 8 6" fill="#e8673a" opacity="0.6"/>
+          </marker>
+        </defs>
+        <!-- Nodes -->
+        <!-- x -->
+        <rect x="10" y="85" width="70" height="40" fill="#111318" stroke="#252b36" rx="2"/>
+        <text x="45" y="100" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#d4d8e2">x</text>
+        <text x="45" y="113" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#6b7280">input</text>
+        <!-- w -->
+        <rect x="10" y="155" width="70" height="40" fill="#111318" stroke="#5b9cf6" rx="2"/>
+        <text x="45" y="170" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#5b9cf6">w</text>
+        <text x="45" y="183" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#6b7280">requires_grad</text>
+        <!-- b -->
+        <rect x="10" y="15" width="70" height="40" fill="#111318" stroke="#5b9cf6" rx="2"/>
+        <text x="45" y="30" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#5b9cf6">b</text>
+        <text x="45" y="43" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#6b7280">requires_grad</text>
+        <!-- matmul -->
+        <rect x="150" y="85" width="90" height="40" fill="#111318" stroke="#252b36" rx="2"/>
+        <text x="195" y="100" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#d4d8e2">matmul</text>
+        <text x="195" y="113" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#6b7280">x @ w</text>
+        <!-- add -->
+        <rect x="320" y="85" width="90" height="40" fill="#111318" stroke="#252b36" rx="2"/>
+        <text x="365" y="100" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#d4d8e2">add</text>
+        <text x="365" y="113" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#6b7280">z = xw+b</text>
+        <!-- loss -->
+        <rect x="490" y="85" width="90" height="40" fill="#111318" stroke="#52c97e" rx="2"/>
+        <text x="535" y="100" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#52c97e">BCE loss</text>
+        <text x="535" y="113" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#6b7280">scalar</text>
+        <!-- .backward() label -->
+        <rect x="630" y="85" width="60" height="40" fill="#111318" stroke="#e8673a" rx="2"/>
+        <text x="660" y="100" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#e8673a">.backward</text>
+        <text x="660" y="113" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#6b7280">()</text>
+
+        <!-- Forward arrows -->
+        <line x1="80" y1="105" x2="148" y2="105" stroke="#5b9cf6" stroke-width="1.5" opacity="0.5" marker-end="url(#arr)"/>
+        <line x1="80" y1="175" x2="130" y2="120" stroke="#5b9cf6" stroke-width="1.5" opacity="0.5" marker-end="url(#arr)"/>
+        <line x1="80" y1="35" x2="318" y2="95" stroke="#5b9cf6" stroke-width="1.5" opacity="0.5" marker-end="url(#arr)"/>
+        <line x1="240" y1="105" x2="318" y2="105" stroke="#5b9cf6" stroke-width="1.5" opacity="0.5" marker-end="url(#arr)"/>
+        <line x1="410" y1="105" x2="488" y2="105" stroke="#5b9cf6" stroke-width="1.5" opacity="0.5" marker-end="url(#arr)"/>
+        <line x1="580" y1="105" x2="628" y2="105" stroke="#5b9cf6" stroke-width="1.5" opacity="0.5" marker-end="url(#arr)"/>
+
+        <!-- Backward label -->
+        <text x="350" y="205" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#e8673a">◀ gradient flows back via chain rule</text>
+      </svg>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre>x = torch.<span class="fn">ones</span>(<span class="nu">5</span>)
+y = torch.<span class="fn">zeros</span>(<span class="nu">3</span>)
+w = torch.<span class="fn">randn</span>(<span class="nu">5</span>, <span class="nu">3</span>, requires_grad=<span class="bi">True</span>)
+b = torch.<span class="fn">randn</span>(<span class="nu">3</span>,    requires_grad=<span class="bi">True</span>)
+
+z    = x @ w + b
+loss = nn.functional.<span class="fn">binary_cross_entropy_with_logits</span>(z, y)
+
+loss.<span class="fn">backward</span>()   <span class="cm"># walks the DAG; fills .grad on w and b</span>
+<span class="fn">print</span>(w.grad)       <span class="cm"># ∂loss/∂w — shape (5,3)</span>
+<span class="fn">print</span>(b.grad)       <span class="cm"># ∂loss/∂b — shape (3,)</span>
+
+<span class="cm"># Disable gradient tracking for inference</span>
+<span class="kw">with</span> torch.<span class="fn">no_grad</span>():
+    z = x @ w + b    <span class="cm"># no DAG built — faster, less memory</span></pre>
+    </div>
+
+    <div class="callout">
+      <strong>Why zero_grad() before each batch?</strong>
+      Gradients <em>accumulate</em> in <code>.grad</code> by default — each <code>.backward()</code> call adds to the existing value. This is occasionally useful (gradient checkpointing) but almost always a bug in training loops. Call <code>optimizer.zero_grad()</code> at the start of every batch to clear them first.
+    </div>
+  </section>
+
+  <!-- ── TRAINING ── -->
+  <section id="training">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Training the Model</h2>
+    </div>
+
+    <p>Training is an iterative loop: predict → measure error → compute gradients → update weights. Each pass over the full dataset is an <strong>epoch</strong>. Each weight update uses a <strong>minibatch</strong> — a tradeoff between the accuracy of full-batch gradients and the speed of single-sample updates.</p>
+
+    <div class="training-flow">
+      <div class="flow-step">
+        <div class="step-num">STEP 01</div>
+        <h5>Forward Pass</h5>
+        <p>Feed a batch through the model. Get predicted logits. The computation graph is built silently in the background.</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">STEP 02</div>
+        <h5>Compute Loss</h5>
+        <p>CrossEntropyLoss softmaxes the logits and computes negative log-likelihood against the true labels. Lower is better.</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">STEP 03</div>
+        <h5>Backward Pass</h5>
+        <p><code>loss.backward()</code> walks the DAG backwards. Each parameter's <code>.grad</code> is filled with how much it contributed to the loss.</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">STEP 04</div>
+        <h5>Clip Gradients</h5>
+        <p><code>clip_grad_norm_(0.1)</code> caps gradient magnitude. Prevents exploding gradients from destabilising training — a common issue in RNNs and early in training.</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">STEP 05</div>
+        <h5>Optimizer Step</h5>
+        <p>SGD nudges each weight in the direction that decreases loss: <em>w ← w − lr × ∂loss/∂w</em>. The learning rate controls step size.</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">STEP 06</div>
+        <h5>Zero Gradients</h5>
+        <p><code>optimizer.zero_grad()</code> clears the <code>.grad</code> buffers so the next batch starts fresh. This is called at the start of the next iteration.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python — train loop</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">def</span> <span class="fn">train_loop</span>(dataloader, epoch, loss_fn, optimizer, model):
+    model.<span class="fn">train</span>()                            <span class="cm"># enables dropout/batchnorm training behaviour</span>
+    total_acc, total_count = <span class="nu">0</span>, <span class="nu">0</span>
+
+    <span class="kw">for</span> idx, (text, label, offsets) <span class="kw">in</span> <span class="fn">enumerate</span>(dataloader):
+        optimizer.<span class="fn">zero_grad</span>()               <span class="cm"># clear last batch's gradients</span>
+        predicted_label = <span class="fn">model</span>(text, offsets)
+        loss = <span class="fn">loss_fn</span>(predicted_label, label)
+        loss.<span class="fn">backward</span>()                      <span class="cm"># compute gradients</span>
+        torch.nn.utils.<span class="fn">clip_grad_norm_</span>(model.<span class="fn">parameters</span>(), <span class="nu">0.1</span>)
+        optimizer.<span class="fn">step</span>()                     <span class="cm"># apply gradients</span>
+
+        total_acc += (predicted_label.<span class="fn">argmax</span>(<span class="nu">1</span>) == label).<span class="fn">sum</span>().<span class="fn">item</span>()
+        total_count += label.<span class="fn">size</span>(<span class="nu">0</span>)
+
+<span class="kw">def</span> <span class="fn">test_loop</span>(dataloader, loss_fn, model):
+    model.<span class="fn">eval</span>()                             <span class="cm"># disables dropout etc.</span>
+    total_acc, total_count = <span class="nu">0</span>, <span class="nu">0</span>
+    <span class="kw">with</span> torch.<span class="fn">no_grad</span>():                    <span class="cm"># no DAG needed — saves memory</span>
+        <span class="kw">for</span> text, label, offsets <span class="kw">in</span> dataloader:
+            predicted_label = <span class="fn">model</span>(text, offsets)
+            total_acc += (predicted_label.<span class="fn">argmax</span>(<span class="nu">1</span>) == label).<span class="fn">sum</span>().<span class="fn">item</span>()
+            total_count += label.<span class="fn">size</span>(<span class="nu">0</span>)
+    <span class="kw">return</span> total_acc / total_count</pre>
+    </div>
+
+    <h3>Hyperparameters &amp; the Scheduler</h3>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="card-icon">📉</div>
+        <h4>Learning Rate = 5</h4>
+        <p>SGD with a high LR converges fast but risks overshooting. The StepLR scheduler multiplies LR by 0.1 when validation accuracy stops improving — annealing it to fine-tune the minimum.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">🔀</div>
+        <h4>shuffle=True</h4>
+        <p>Reshuffling each epoch prevents the model from memorising presentation order. If your dataset is sorted by label, training without shuffle would yield misleading loss curves.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">📏</div>
+        <h4>batch_size = 64</h4>
+        <p>Larger batches give more accurate gradient estimates but need more memory. Smaller batches introduce noise — which can actually help escape sharp local minima and generalise better.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python — scheduler + epoch loop</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre>loss_fn   = torch.nn.<span class="fn">CrossEntropyLoss</span>()
+optimizer = torch.optim.<span class="fn">SGD</span>(model.<span class="fn">parameters</span>(), lr=<span class="nu">5</span>)
+scheduler = torch.optim.lr_scheduler.<span class="fn">StepLR</span>(optimizer, <span class="nu">1.0</span>, gamma=<span class="nu">0.1</span>)
+total_accu = <span class="bi">None</span>
+
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="fn">range</span>(<span class="nu">1</span>, epochs + <span class="nu">1</span>):
+    <span class="fn">train_loop</span>(train_dl, epoch, loss_fn, optimizer, model)
+    accu_val = <span class="fn">test_loop</span>(valid_dl, loss_fn, model)
+    <span class="kw">if</span> total_accu <span class="kw">is not None and</span> total_accu > accu_val:
+        scheduler.<span class="fn">step</span>()    <span class="cm"># decay LR if val accuracy dropped</span>
+    <span class="kw">else</span>:
+        total_accu = accu_val</pre>
+    </div>
+  </section>
+
+  <!-- ── SAVE/LOAD ── -->
+  <section id="save">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Saving &amp; Loading</h2>
+    </div>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="card-icon">💾</div>
+        <h4>state_dict only (recommended)</h4>
+        <p>Saves just the weights as a plain dict. To load, you recreate the model architecture in code first, then load weights into it. Portable across Python versions.</p>
+      </div>
+      <div class="concept-card">
+        <div class="card-icon">📦</div>
+        <h4>Full model (pickle)</h4>
+        <p>Saves architecture + weights via pickle. Convenient but fragile — the class definition must exist at load time, and the file can execute arbitrary code (<code>weights_only=False</code>).</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="cm"># Save weights only (recommended)</span>
+torch.<span class="fn">save</span>(model.<span class="fn">state_dict</span>(), <span class="st">'model_weights.pth'</span>)
+
+new_model = <span class="fn">TextClassificationModel</span>(vocab_size, emsize, num_class)
+new_model.<span class="fn">load_state_dict</span>(torch.<span class="fn">load</span>(<span class="st">'model_weights.pth'</span>))
+new_model.<span class="fn">eval</span>()    <span class="cm"># IMPORTANT: disables training-only layers</span>
+
+<span class="cm"># Save full model (less portable)</span>
+torch.<span class="fn">save</span>(model, <span class="st">'model.pth'</span>)
+model = torch.<span class="fn">load</span>(<span class="st">'model.pth'</span>, weights_only=<span class="bi">False</span>)  <span class="cm"># ⚠ trust the file</span></pre>
+    </div>
+
+    <div class="callout">
+      <strong>Why call model.eval()?</strong>
+      Some layers behave differently at inference time. Dropout randomly zeros activations during training (regularisation) but should be deterministic at inference. BatchNorm uses running stats instead of batch stats. <code>model.eval()</code> switches these modes. Forgetting it causes inconsistent predictions.
+    </div>
+  </section>
+
+  <!-- ── TASKS ── -->
+  <section id="tasks">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>Task 2 — Embedding Analysis</h2>
+    </div>
+
+    <p>Task 2 asks you to inspect the learned embedding weights after training. Here's an interactive simulation showing what the analysis looks like (using the uniform initialisation range before training).</p>
+
+    <div class="task-box">
+      <h4>Task 2: Properties of Embeddings</h4>
+      <ol>
+        <li>What are the minimum and maximum values in the embedding matrix?</li>
+        <li>Plot a histogram of embedding values in buckets of width 0.1</li>
+      </ol>
+    </div>
+
+    <div class="interactive-section">
+      <h4>Embedding Distribution Explorer</h4>
+      <div class="controls">
+        <div class="control-group">
+          <label>Weight State</label>
+          <select id="weight-state" onchange="updateHistogram()">
+            <option value="init">After init (uniform −0.5 to 0.5)</option>
+            <option value="trained">After training (approximate)</option>
+          </select>
+        </div>
+        <div class="control-group" style="justify-content:flex-end; margin-top:20px;">
+          <button class="secondary-btn" onclick="updateHistogram()">Refresh</button>
+        </div>
+      </div>
+
+      <div class="embedding-stats" id="embed-stats">
+        <div class="stat-cell"><span class="stat-val" id="stat-min">—</span><span class="stat-label">Min</span></div>
+        <div class="stat-cell"><span class="stat-val" id="stat-max">—</span><span class="stat-label">Max</span></div>
+        <div class="stat-cell"><span class="stat-val" id="stat-mean">—</span><span class="stat-label">Mean</span></div>
+      </div>
+
+      <div id="histogram-bars"></div>
+      <div class="hist-labels" id="hist-labels"></div>
+
+      <div style="margin-top:1.25rem;">
+        <div class="code-block" style="margin:0;">
+          <div class="code-header"><span class="code-lang">python — Task 2 code</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="cm"># Get embedding weights as a flat list of values</span>
+weights = model.embedding.weight.data.<span class="fn">tolist</span>()
+flat = [v <span class="kw">for</span> row <span class="kw">in</span> weights <span class="kw">for</span> v <span class="kw">in</span> row]
+
+<span class="cm"># Min and max</span>
+<span class="fn">print</span>(<span class="st">f"Min: </span>{<span class="fn">min</span>(flat)<span class="st">:.4f}, Max: </span>{<span class="fn">max</span>(flat)<span class="st">:.4f}"</span>)
+
+<span class="cm"># Histogram with width 0.1 buckets</span>
+<span class="kw">from</span> collections <span class="kw">import</span> Counter
+<span class="kw">import</span> math
+
+buckets = Counter()
+<span class="kw">for</span> v <span class="kw">in</span> flat:
+    bucket = math.<span class="fn">floor</span>(v * <span class="nu">10</span>) / <span class="nu">10</span>    <span class="cm"># round down to nearest 0.1</span>
+    buckets[bucket] += <span class="nu">1</span>
+
+<span class="kw">for</span> b <span class="kw">in</span> <span class="fn">sorted</span>(buckets):
+    bar = <span class="st">'█'</span> * (buckets[b] // <span class="nu">100</span>)
+    <span class="fn">print</span>(<span class="st">f"</span>{b:<span class="nu">+.1f</span>}<span class="st"> | </span>{bar}<span class="st"> </span>{buckets[b]}<span class="st">"</span>)</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Workshop 3 · Introduction to PyTorch · Based on pytorch.org/tutorials
+</footer>
+
+<script>
+// ── INTERSECTION OBSERVER (section reveal) ──────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08 });
+document.querySelectorAll('section').forEach(s => observer.observe(s));
+
+// ── COPY BUTTON ─────────────────────────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'copied!';
+    btn.style.color = 'var(--accent3)';
+    setTimeout(() => { btn.textContent = 'copy'; btn.style.color = ''; }, 1600);
+  });
+}
+
+// ── TENSOR EXPLORER ─────────────────────────────────────────────────────────
+function makeGrid(data, label, heatmap) {
+  const n = data.length;
+  const flat = data.flat();
+  const absMax = Math.max(...flat.map(Math.abs), 0.001);
+
+  let html = `<div class="tensor-container"><div class="tensor-label">${label}</div>`;
+  html += `<div class="tensor-grid" style="grid-template-columns:repeat(${n},1fr)">`;
+  for (const row of data) {
+    for (const v of row) {
+      let bg = '#1a1f28';
+      if (heatmap) {
+        const t = (v + absMax) / (2 * absMax);
+        const r = Math.round(t * 232 + (1-t)*91);
+        const g = Math.round(t * 103 + (1-t)*156);
+        const b = Math.round(t * 58  + (1-t)*246);
+        bg = `rgb(${r},${g},${b})`;
+      }
+      const textCol = heatmap ? '#fff' : 'var(--text)';
+      html += `<div class="tensor-cell" style="background:${bg};color:${textCol}">${v.toFixed ? v.toFixed(2) : v}</div>`;
+    }
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function rand(n) { return Array.from({length:n}, () => Array.from({length:n}, () => parseFloat((Math.random()-0.5).toFixed(3)))); }
+function ones(n) { return Array.from({length:n}, () => Array(n).fill(1)); }
+function zeros(n) { return Array.from({length:n}, () => Array(n).fill(0)); }
+function eye(n)  { return Array.from({length:n}, (_,i) => Array.from({length:n}, (_,j) => i===j?1:0)); }
+
+function matMul(A, B) {
+  const n = A.length;
+  return Array.from({length:n}, (_,i) =>
+    Array.from({length:n}, (_,j) =>
+      parseFloat(A[i].reduce((s,_,k) => s + A[i][k]*B[k][j], 0).toFixed(3))
+    )
+  );
+}
+
+function elMul(A, B) {
+  return A.map((r,i) => r.map((v,j) => parseFloat((v*B[i][j]).toFixed(3))));
+}
+
+function runTensorOp() {
+  const op = document.getElementById('op-select').value;
+  const n  = parseInt(document.getElementById('size-select').value);
+  const out = document.getElementById('tensor-output');
+  const codeDiv = document.getElementById('tensor-code');
+
+  let html = '', codeStr = '';
+
+  if (op === 'rand') {
+    const T = rand(n);
+    html = makeGrid(T, `rand(${n},${n})`, true);
+    codeStr = `torch.rand(${n}, ${n})`;
+  } else if (op === 'ones') {
+    html = makeGrid(ones(n), `ones(${n},${n})`, false);
+    codeStr = `torch.ones(${n}, ${n})`;
+  } else if (op === 'zeros') {
+    html = makeGrid(zeros(n), `zeros(${n},${n})`, false);
+    codeStr = `torch.zeros(${n}, ${n})`;
+  } else if (op === 'eye') {
+    html = makeGrid(eye(n), `eye(${n})`, false);
+    codeStr = `torch.eye(${n})`;
+  } else if (op === 'mul') {
+    const A = rand(n), B = rand(n), C = elMul(A, B);
+    html = makeGrid(A,'A',true) + makeGrid(B,'B',true) + makeGrid(C,'A * B (element-wise)',true);
+    codeStr = `A * B  # element-wise, same shape`;
+  } else if (op === 'matmul') {
+    const A = rand(n), B = rand(n), C = matMul(A,B);
+    html = makeGrid(A,'A',true) + makeGrid(B,'B',true) + makeGrid(C,'A @ B (matmul)',true);
+    codeStr = `A @ B  # dot product of rows × cols`;
+  }
+
+  out.innerHTML = html;
+  codeDiv.innerHTML = `<div class="code-block"><div class="code-header"><span class="code-lang">python</span></div><pre>${codeStr}</pre></div>`;
+}
+
+// Run once on load
+runTensorOp();
+
+// ── HISTOGRAM ───────────────────────────────────────────────────────────────
+function generateWeights(state) {
+  const n = 2000;
+  const vals = [];
+  if (state === 'init') {
+    for (let i = 0; i < n; i++) vals.push((Math.random() - 0.5));
+  } else {
+    // Simulate trained weights: Gaussian-ish, slightly asymmetric
+    for (let i = 0; i < n; i++) {
+      let v = 0;
+      for (let j = 0; j < 6; j++) v += (Math.random() - 0.5);
+      v = v / 6 * 0.6 + (Math.random() < 0.15 ? (Math.random()-0.5)*1.2 : 0);
+      vals.push(Math.max(-1.0, Math.min(1.0, v)));
+    }
+  }
+  return vals;
+}
+
+function updateHistogram() {
+  const state = document.getElementById('weight-state').value;
+  const vals = generateWeights(state);
+
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+
+  document.getElementById('stat-min').textContent = mn.toFixed(3);
+  document.getElementById('stat-max').textContent = mx.toFixed(3);
+  document.getElementById('stat-mean').textContent = mean.toFixed(4);
+
+  // Build buckets
+  const lo = -1.0, hi = 1.0, step = 0.1;
+  const nbuckets = Math.round((hi - lo) / step);
+  const counts = new Array(nbuckets).fill(0);
+  for (const v of vals) {
+    const idx = Math.min(Math.floor((v - lo) / step), nbuckets - 1);
+    if (idx >= 0) counts[idx]++;
+  }
+  const maxCount = Math.max(...counts);
+
+  const barsDiv = document.getElementById('histogram-bars');
+  const labDiv  = document.getElementById('hist-labels');
+  barsDiv.innerHTML = '';
+  labDiv.innerHTML  = '';
+
+  counts.forEach((c, i) => {
+    const pct = c / maxCount;
+    const bar = document.createElement('div');
+    bar.className = 'hist-bar';
+    bar.style.height = Math.max(pct * 130, 2) + 'px';
+    const bucketVal = (lo + i * step).toFixed(1);
+    bar.title = `${bucketVal} → ${(+bucketVal + step).toFixed(1)}: ${c}`;
+    barsDiv.appendChild(bar);
+  });
+
+  // Labels at -1, -0.5, 0, 0.5, 1
+  [-1.0, -0.5, 0.0, 0.5, 1.0].forEach(v => {
+    const span = document.createElement('span');
+    span.textContent = v.toFixed(1);
+    labDiv.appendChild(span);
+  });
+}
+
+updateHistogram();
+</script>
+</body>
+</html>
